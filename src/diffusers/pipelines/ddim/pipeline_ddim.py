@@ -65,6 +65,7 @@ class DDIMPipeline(DiffusionPipeline):
         num_inference_steps: int = 50,
         use_clipped_model_output: Optional[bool] = None,
         output_type: Optional[str] = "pil",
+        init: torch.Tensor = None, 
         return_dict: bool = True,
     ) -> Union[ImagePipelineOutput, Tuple]:
         r"""
@@ -137,7 +138,10 @@ class DDIMPipeline(DiffusionPipeline):
                 f" size of {batch_size}. Make sure the batch size matches the length of the generators."
             )
 
-        image = randn_tensor(image_shape, generator=generator, device=self._execution_device, dtype=self.unet.dtype)
+        if init == None:
+            image = randn_tensor(image_shape, generator=generator, device=self._execution_device, dtype=self.unet.dtype)
+        else:
+            image = init.detach().clone().to(self.device)
 
         # set step values
         self.scheduler.set_timesteps(num_inference_steps)

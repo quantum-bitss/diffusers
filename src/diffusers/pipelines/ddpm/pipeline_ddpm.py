@@ -60,6 +60,7 @@ class DDPMPipeline(DiffusionPipeline):
         generator: Optional[Union[torch.Generator, List[torch.Generator]]] = None,
         num_inference_steps: int = 1000,
         output_type: Optional[str] = "pil",
+        init: torch.Tensor = None, 
         return_dict: bool = True,
     ) -> Union[ImagePipelineOutput, Tuple]:
         r"""
@@ -110,12 +111,15 @@ class DDPMPipeline(DiffusionPipeline):
         else:
             image_shape = (batch_size, self.unet.config.in_channels, *self.unet.config.sample_size)
 
-        if self.device.type == "mps":
-            # randn does not work reproducibly on mps
-            image = randn_tensor(image_shape, generator=generator, dtype=self.unet.dtype)
-            image = image.to(self.device)
+        if init == None:
+            if self.device.type == "mps":
+                # randn does not work reproducibly on mps
+                image = randn_tensor(image_shape, generator=generator, dtype=self.unet.dtype)
+                image = image.to(self.device)
+            else:
+                image = randn_tensor(image_shape, generator=generator, device=self.device, dtype=self.unet.dtype)
         else:
-            image = randn_tensor(image_shape, generator=generator, device=self.device, dtype=self.unet.dtype)
+            image = init.detach().clone().to(self.device)
 
         # set step values
         self.scheduler.set_timesteps(num_inference_steps)
